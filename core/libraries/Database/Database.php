@@ -43,11 +43,6 @@ class Database {
         return $db->escape($string);
     }
 
-    public static function connection($type) {
-        $db = new DatabaseConnection();
-        return $db->connection($type);
-    }
-
     public static function write() {
         $db = new DatabaseConnection();
         return $db->setConnector('write');

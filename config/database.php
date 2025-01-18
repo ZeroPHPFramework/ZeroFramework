@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'connection' => 'sqlite',
+    'connection' => env('DB_CONNECTION', 'mysql'),
 
     'mysql' => [
         'driver' => 'mysql',
