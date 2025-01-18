@@ -10,5 +10,6 @@ namespace {
         public static function endSection() {}
         public static function yieldSection($section) {}
         public static function include($view) {}
+        public static function render($view, $data = []) {}
     }
 }

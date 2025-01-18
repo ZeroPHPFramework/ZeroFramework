@@ -36,7 +36,7 @@ function loadEnvFiles(): array
     return $envData;
 }
 
-function getConfig(string $key, $default = null)
+function env(string $key, $default = null)
 {
     return $_ENV['CONFIG'][$key] ?? $default;
 }

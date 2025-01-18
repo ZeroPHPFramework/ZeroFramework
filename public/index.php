@@ -11,7 +11,8 @@ $_ENV['BASE_PATH'] = dirname(__DIR__);
 require_once('../core/libraries/Config/Helper.php');
 require_once('../core/libraries/Storage/Helper.php');
 
-$helpers = require_once('../core/helpers.php');
+$kernel  = require_once('../core/kernel.php');
+$helpers = $kernel['helpers'];
 
 // Only load helpers that are relevant to the current environment [http]
 foreach ($helpers as $helper) {

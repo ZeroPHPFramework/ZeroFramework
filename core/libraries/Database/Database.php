@@ -1,57 +1,98 @@
 <?php
-
 namespace Zero\Lib;
 
 use PDO;
 
 class Database {
+    public static function fetch($query, $bind=null, $params=null, $debug=false) {
+        $db = new DatabaseConnection();
+        return $db->fetch($query, $bind, $params, $debug);
+    }
 
-    public $generalDb;
-    public $readDb;
-    public $writeDb;
+    public function select($query, $bind=null, $params=null, $debug=false) {
+        return self::fetch($query, $bind, $params, $debug);
+    }
 
-    public $dbalWriteDb;
-    public $dbalReadDb;
+    public static function first($query, $bind=null, $params=null, $debug=false) {
+        $db = new DatabaseConnection();
+        return $db->first($query, $bind, $params, $debug);
+    }
+
+    public static function create($query, $bind=null, $params=null, $debug=false) {
+        $db = new DatabaseConnection();
+        return $db->create($query, $bind, $params, $debug);
+    }
+
+    public static function update($query, $bind=null, $params=null, $debug=false) {
+        $db = new DatabaseConnection();
+        return $db->update($query, $bind, $params, $debug);
+    }
+
+    public static function delete($query, $bind=null, $params=null, $debug=false) {
+        $db = new DatabaseConnection();
+        return $db->delete($query, $bind, $params, $debug);
+    }
+
+    public static function query($query, $bind=null, $params=null, $debug=false) {
+        $db = new DatabaseConnection();
+        return $db->query($query, $bind, $params, $debug);
+    }
+
+    public static function escape($string) {
+        $db = new DatabaseConnection();
+        return $db->escape($string);
+    }
+
+    public static function connection($type) {
+        $db = new DatabaseConnection();
+        return $db->connection($type);
+    }
+
+    public static function write() {
+        $db = new DatabaseConnection();
+        return $db->setConnector('write');
+    }
+
+    public static function read() {
+        $db = new DatabaseConnection();
+        return $db->setConnector('read');
+    }
+
+}
+
+
+
+class DatabaseConnection {
+
+    public $connection;
 
     public $connector;
 
+    public $driver;
+
     public function __construct() {
+        $this->driver = config("database.".config('database.connection'));
         $this->connect();
     }
 
     public function connect() {
-        $this->generalDb = new PDO('mysql:host=' . DEF_DB_HOST . ';dbname=' . DEF_DB_NAME . ';charset=utf8', DEF_DB_USER, DEF_DB_PWD);
-        $this->generalDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->generalDb->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        $this->generalDb->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $this->generalDb->setAttribute(PDO::ATTR_PERSISTENT, true);
+        $driverClass = ucfirst($this->driver['driver']) . 'Driver';
+        $class = "Zero\\Drivers\\{$driverClass}";
 
-        $this->readDb = new PDO('mysql:host=' . DEF_DB_READ_HOST . ';dbname=' . DEF_DB_NAME . ';charset=utf8', DEF_DB_USER, DEF_DB_PWD);
-        $this->readDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->readDb->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        $this->readDb->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $this->readDb->setAttribute(PDO::ATTR_PERSISTENT, true);
-
-        $this->writeDb = new PDO('mysql:host=' . DEF_DB_WRITE_HOST . ';dbname=' . DEF_DB_NAME . ';charset=utf8', DEF_DB_USER, DEF_DB_PWD);
-        $this->writeDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->writeDb->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-        $this->writeDb->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $this->writeDb->setAttribute(PDO::ATTR_PERSISTENT, true);
+        if (class_exists($class)) {
+            $driver = new $class($this->driver);
+            $this->connection = $driver->createConnection();
+        } else {
+            throw new \Exception("Driver class $class not found");
+        }
     }
+    
 
     public function setConnector($connector) {
         $this->connector = $connector;
         return $this;
     }
 
-    public function connection($type) {
-        if($type == 'log') {
-           $this->generalDb   = new PDO('mysql:host=' . DEF_DB_LOG_HOST . ';dbname=' . DEF_DB_LOG_DATABASE . ';charset=utf8', DEF_DB_LOG_USERNAME, DEF_DB_LOG_PASSWORD);
-           $this->readDb      = new PDO('mysql:host=' . DEF_DB_LOG_HOST . ';dbname=' . DEF_DB_LOG_DATABASE . ';charset=utf8', DEF_DB_LOG_USERNAME, DEF_DB_LOG_PASSWORD);
-           $this->writeDb     = new PDO('mysql:host=' . DEF_DB_LOG_HOST . ';dbname=' . DEF_DB_LOG_DATABASE . ';charset=utf8', DEF_DB_LOG_USERNAME, DEF_DB_LOG_PASSWORD);
-        }
-        return $this;
-    }
 
     // Check is write or write
     public function isWrite($query) {
@@ -62,22 +103,12 @@ class Database {
     }
 
     public function escape($string) {
-        $db = $this->isWrite($query) ? $this->writeDb : $this->readDb;
-        return $db->quote($string);
+        return $this->connection->quote($string);
     }
 
     public function query($query, $bind = null, $params = array(), $state = 'fetch', $debug=false) {
-        $db    = null;
+        $db    = $this->connection;
         $stmt  = null;
-
-        if($this->connector == 'write') {
-            $db = $this->writeDb;
-        } elseif($this->connector == 'read') {
-            $db = $this->readDb;
-        } else {
-            // $db = $this->isWrite($query) ? $this->writeDb : $this->readDb;
-            $db = $this->generalDb;
-        }
 
         $stmt = $db->prepare($query);
 
@@ -161,69 +192,5 @@ class Database {
         return $this->query($query, $bind, $params, 'delete', $debug);
     }
 
-    public function getDbalWriteDb() {
-        return $this->dbalWriteDb;
-    }
-
-    public function getDbalReadDb() {
-        return $this->dbalReadDb;
-    }
-
 }
 
-class DB {
-    public static function fetch($query, $bind=null, $params=null, $debug=false) {
-        $db = new Database();
-        return $db->fetch($query, $bind, $params, $debug);
-    }
-
-    public function select($query, $bind=null, $params=null, $debug=false) {
-        return self::fetch($query, $bind, $params, $debug);
-    }
-
-    public static function first($query, $bind=null, $params=null, $debug=false) {
-        $db = new Database();
-        return $db->first($query, $bind, $params, $debug);
-    }
-
-    public static function create($query, $bind=null, $params=null, $debug=false) {
-        $db = new Database();
-        return $db->create($query, $bind, $params, $debug);
-    }
-
-    public static function update($query, $bind=null, $params=null, $debug=false) {
-        $db = new Database();
-        return $db->update($query, $bind, $params, $debug);
-    }
-
-    public static function delete($query, $bind=null, $params=null, $debug=false) {
-        $db = new Database();
-        return $db->delete($query, $bind, $params, $debug);
-    }
-
-    public static function query($query, $bind=null, $params=null, $debug=false) {
-        $db = new Database();
-        return $db->query($query, $bind, $params, $debug);
-    }
-
-    public static function escape($string) {
-        $db = new Database();
-        return $db->escape($string);
-    }
-
-    public static function connection($type) {
-        $db = new Database();
-        return $db->connection($type);
-    }
-
-    public static function write() {
-        $db = new Database();
-        return $db->setConnector('write');
-    }
-
-    public static function read() {
-        $db = new Database();
-        return $db->setConnector('read');
-    }
-
-}

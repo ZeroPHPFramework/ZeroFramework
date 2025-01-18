@@ -2,12 +2,14 @@
 
 namespace App\Controllers;
 
-use Zero\Lib\View;
+use View;
+use DB;
 
 class HomeController
 {
     public function index()
     {
+        // $data = DB::fetch('SELECT * FROM users');
         return View::render('pages/home');
     }
 }

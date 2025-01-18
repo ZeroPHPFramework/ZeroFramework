@@ -1,7 +1,5 @@
 <?php View::layout('layouts/app') ?>
 
-
-
 <?php View::startSection('content') ?>
 <div class="container mx-auto py-5">
     <h1 class="text-center">
