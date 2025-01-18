@@ -1,0 +1,143 @@
+#!/usr/bin/env php
+<?php
+
+define('DEFAULT_HOST', '127.0.0.1');
+define('DEFAULT_PORT', '8000');
+define('DEFAULT_DOCROOT', 'public');
+
+// Parse command-line arguments using getopt
+$options = getopt('', ['host:', 'port:', 'root:', 'franken', 'swolee', 'watch']);
+
+// Validate and set default options
+$host = $options['host'] ?? DEFAULT_HOST;
+$port = $options['port'] ?? DEFAULT_PORT;
+$documentRoot = $options['root'] ?? DEFAULT_DOCROOT;
+$watch = isset($options['watch']);
+
+// Start the server based on the command
+if ($argc > 1 && $argv[1] === 'serve') {
+    // Validate the document root
+    if (!is_dir($documentRoot)) {
+        echo "Error: The specified document root directory \"$documentRoot\" does not exist.\n";
+        exit(1);
+    }
+
+    // Check the mode (franken, swolee, or default)
+    if (isset($options['franken'])) {
+        echo "Starting server in Franken mode...\n";
+        startFrankenServer($host, $port, $documentRoot, $watch);
+    } elseif (isset($options['swolee'])) {
+        echo "Starting server in Swoole mode...\n";
+        startSwooleServer($host, $port, $documentRoot, $watch);
+    } else {
+        echo "Starting PHP server in default mode...\n";
+        startPhpServer($host, $port, $documentRoot, $watch);
+    }
+} else {
+    // Display help message
+    echo "Orion CLI\n\n";
+    echo "Available commands:\n";
+    echo "  serve       Start the development server\n";
+    echo "\nOptions for 'serve':\n";
+    echo "  --host      Specify the host (default: 127.0.0.1)\n";
+    echo "  --port      Specify the port (default: 8000)\n";
+    echo "  --root      Specify the document root (default: public)\n";
+    echo "  --franken   Use the Franken server mode\n";
+    echo "  --swolee    Use the Swoole server mode\n";
+    echo "  --watch     Enable file watching (auto-reload server on file change)\n";
+    exit(0);
+}
+
+// Start PHP built-in server
+function startPhpServer($host, $port, $documentRoot, $watch = false) {
+    if ($watch) {
+        startWatch($documentRoot);
+    }
+
+    $command = sprintf('php -S %s:%s -t %s', escapeshellarg($host), escapeshellarg($port), escapeshellarg($documentRoot));
+    passthru($command);
+}
+
+// Start Franken server (custom behavior)
+function startFrankenServer($host, $port, $documentRoot, $watch = false) {
+    if ($watch) {
+        startWatch($documentRoot);
+    }
+
+    echo "Running Franken server...\n";
+    echo "Host: $host, Port: $port, Document Root: $documentRoot\n";
+    // Add custom logic for Franken server here
+    echo "Franken mode started...\n";
+}
+
+// Start Swoole server (ensure Swoole extension is installed)
+function startSwooleServer($host, $port, $documentRoot, $watch = false) {
+    if (!extension_loaded('swoole')) {
+        echo "Error: The Swoole extension is not installed.\n";
+        exit(1);
+    }
+
+    if ($watch) {
+        startWatch($documentRoot);
+    }
+
+    // Simple Swoole HTTP server
+    $server = new Swoole\Http\Server($host, $port);
+
+    $server->on('Request', function ($request, $response) use ($documentRoot) {
+        $file = $documentRoot . $request->server['request_uri'];
+        if (file_exists($file)) {
+            $response->header("Content-Type", mime_content_type($file));
+            $response->send(file_get_contents($file));
+        } else {
+            $response->status(404);
+            $response->end("Not Found");
+        }
+    });
+
+    echo "Swoole server started at http://$host:$port...\n";
+    $server->start();
+}
+
+// Watch the directory for changes and restart the server if any changes are detected
+function startWatch($directory) {
+    echo "Watching for file changes in $directory...\n";
+    if (function_exists('inotify_init')) {
+        // For Linux systems using inotify
+        $inotify = inotify_init();
+        $watchDescriptor = inotify_add_watch($inotify, $directory, IN_MODIFY | IN_CREATE | IN_DELETE);
+        
+        while (true) {
+            $events = inotify_read($inotify);
+            foreach ($events as $event) {
+                echo "File changed: {$event['name']}, restarting server...\n";
+                exec('php -S 127.0.0.1:8000 -t ' . escapeshellarg($directory));
+            }
+            sleep(1); // Delay between checks to avoid high CPU usage
+        }
+    } else {
+        // Fallback for non-Linux systems (using file system polling)
+        echo "File watcher not available (inotify). Using fallback...\n";
+        while (true) {
+            clearstatcache(); // Clear PHP file cache
+            $lastModified = getLastModifiedTime($directory);
+            sleep(1); // Poll every second
+            $newModified = getLastModifiedTime($directory);
+            if ($newModified > $lastModified) {
+                echo "File changes detected, restarting server...\n";
+                exec('php -S 127.0.0.1:8000 -t ' . escapeshellarg($directory));
+            }
+        }
+    }
+}
+
+function getLastModifiedTime($directory) {
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
+    $lastModified = 0;
+    foreach ($iterator as $file) {
+        if ($file->isFile()) {
+            $lastModified = max($lastModified, $file->getMTime());
+        }
+    }
+    return $lastModified;
+}
