@@ -14,5 +14,13 @@ return [
     'sqlite' => [
         'driver' => 'sqlite3',
         'database' => env('SQLITE_DATABASE', base('sqlite/zero.sqlite')),
-    ]
+    ],
+    'postgres' => [
+        'driver' => 'pgsql',
+        'host' => env('POSTGRES_HOST', '127.0.0.1'),
+        'port' => env('POSTGRES_PORT', '5432'),
+        'database' => env('POSTGRES_DATABASE', 'zero'),
+        'username' => env('POSTGRES_USER', 'root'),
+        'password' => env('POSTGRES_PASSWORD', ''),
+    ],
 ];

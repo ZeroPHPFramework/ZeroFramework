@@ -70,16 +70,3 @@ class Date
         return $this;
     }
 }
-
-// // Example Usage
-// $date = Date::now();
-// echo $date->format() . "\n";
-
-// $date->addDays(5);
-// echo "Add 5 days: " . $date->format() . "\n";
-
-// $date->subtractDays(10);
-// echo "Subtract 10 days: " . $date->format() . "\n";
-
-// $anotherDate = Date::parse('2025-01-01');
-// echo "Difference: " . $date->diffForHumans($anotherDate) . "\n";

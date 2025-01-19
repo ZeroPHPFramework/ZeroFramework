@@ -5,13 +5,13 @@ use PDO;
 use PDOException;
 
 /**
- * MySQL Database Driver Class
+ * PostgreSQL Database Driver Class
  * 
- * This class handles MySQL database connections using PDO.
- * It provides a robust and secure way to connect to MySQL databases
+ * This class handles PostgreSQL database connections using PDO.
+ * It provides a robust and secure way to connect to PostgreSQL databases
  * with proper error handling and connection configuration.
  */
-class MysqlDriver {
+class PgsqlDriver {
 
     /**
      * @var PDO The PDO connection instance
@@ -26,7 +26,7 @@ class MysqlDriver {
     /**
      * Constructor
      * 
-     * @param array $config Database configuration array containing host, database, username, and password
+     * @param array $config Database configuration array containing host, port, database, username, and password
      * @throws PDOException If connection cannot be established
      */
     public function __construct($config)
@@ -36,7 +36,7 @@ class MysqlDriver {
     }
 
     /**
-     * Creates a new PDO connection to MySQL database
+     * Creates a new PDO connection to PostgreSQL database
      * 
      * Establishes connection with the following settings:
      * - UTF-8 charset
@@ -50,12 +50,22 @@ class MysqlDriver {
      */
     public function createConnection() {
         try {
+            // Build DSN string with optional port configuration
+            $dsn = sprintf(
+                'pgsql:host=%s;dbname=%s;options=\'--client_encoding=UTF8\'',
+                $this->config['host'],
+                $this->config['database']
+            );
+
+            // Add port if specified
+            if (!empty($this->config['port'])) {
+                $dsn .= ';port=' . $this->config['port'];
+            }
+
             // Create new PDO instance with connection parameters
             $this->connection = new PDO(
-                'mysql:host=' . $this->config['host'] . 
-                ';dbname=' . $this->config['database'] . 
-                ';charset=utf8', 
-                $this->config['username'], 
+                $dsn,
+                $this->config['username'],
                 $this->config['password']
             );
 
@@ -66,7 +76,7 @@ class MysqlDriver {
             $this->connection->setAttribute(PDO::ATTR_PERSISTENT, true);
 
         } catch (PDOException $e) {
-            throw new PDOException("Failed to connect to MySQL: " . $e->getMessage(), $e->getCode());
+            throw new PDOException("Failed to connect to PostgreSQL: " . $e->getMessage(), $e->getCode());
         }
 
         return $this->connection;
