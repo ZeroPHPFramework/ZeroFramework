@@ -2,6 +2,13 @@
 // Require the autoload file to initialize the application core and dependencies
 require_once(core_path('bootstrap/autoload.php'));
 
+// Import composer autoload file if it exists
+$composerAutoloadPath = base('vendor/autoload.php');
+if(file_exists($composerAutoloadPath)) {
+    require_once($composerAutoloadPath);
+}
+
+
 // Import the Router class from the Zero\Lib namespace
 use Zero\Lib\Router;
 
@@ -16,6 +23,7 @@ loadEnvFiles();
  * This file typically defines all the routes for the web application.
  */
 require_once(base('routes/web.php'));
+
 
 /**
  * Dispatch the incoming request to the appropriate route handler.
