@@ -1,24 +1,24 @@
 # Namespaces
 
-## Zero\Router
+## Zero\Lib\Router
 
-## Zero\Env
+## Zero\Lib\Env
 
-## Zero\Request
+## Zero\Lib\Request
 
-## Zero\Response
+## Zero\Lib\Response
 
-## Zero\View
+## Zero\Lib\View
 
-## Zero\Cookie
+## Zero\Lib\Cookie
 
-## Zero\Session
+## Zero\Lib\Session
 
-## Zero\Http
+## Zero\Lib\Http
 
-## Zero\Database
+## Zero\Lib\Database
 
-## Zero\Console
+## Zero\Lib\Console
 
 # Run
 
